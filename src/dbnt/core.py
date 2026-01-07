@@ -4,37 +4,37 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Optional
-import json
-import yaml
 
 
 class RuleType(Enum):
     """Type of rule."""
+
     SUCCESS = "success"
     FAILURE = "failure"
 
 
 class Category(Enum):
     """Rule categories."""
+
     # Success categories
-    FORMAT = "format"          # Response structure that worked
-    CODE = "code"              # Implementation patterns approved
-    EXPLAIN = "explain"        # Right level of detail
-    TOOL = "tool"              # Efficient tool combinations
-    COMM = "comm"              # Communication style approved
+    FORMAT = "format"  # Response structure that worked
+    CODE = "code"  # Implementation patterns approved
+    EXPLAIN = "explain"  # Right level of detail
+    TOOL = "tool"  # Efficient tool combinations
+    COMM = "comm"  # Communication style approved
 
     # Failure categories
-    PROTOCOL = "protocol"      # Broke established pattern
+    PROTOCOL = "protocol"  # Broke established pattern
     PREFERENCE = "preference"  # User corrected approach
-    WASTE = "waste"            # Unnecessary verbosity
-    GAP = "gap"                # Capability gap
+    WASTE = "waste"  # Unnecessary verbosity
+    GAP = "gap"  # Capability gap
     INTEGRATION = "integration"  # Systems didn't connect
 
 
 @dataclass
 class Rule:
     """A DBNT/DBGT rule."""
+
     id: str
     type: RuleType
     category: Category
@@ -42,7 +42,7 @@ class Rule:
     context: str
     weight: float = 1.0
     created: datetime = field(default_factory=datetime.now)
-    source_session: Optional[str] = None
+    source_session: str | None = None
 
     def to_dict(self) -> dict:
         return {
@@ -83,19 +83,20 @@ class Rule:
 @dataclass
 class DissonanceResult:
     """Result of dissonance calculation."""
+
     score: float
     status: str
     success_count: int
     failure_count: int
     success_weight: float
     failure_weight: float
-    recommendation: Optional[str] = None
+    recommendation: str | None = None
 
 
 class RuleStore:
     """Storage for DBNT/DBGT rules."""
 
-    def __init__(self, base_path: Optional[Path] = None):
+    def __init__(self, base_path: Path | None = None):
         self.base_path = base_path or Path.home() / ".dbnt" / "rules"
         self.success_path = self.base_path / "successes"
         self.failure_path = self.base_path / "failures"
@@ -134,7 +135,7 @@ class RuleStore:
 
 
 # Global store instance
-_store: Optional[RuleStore] = None
+_store: RuleStore | None = None
 
 
 def get_store() -> RuleStore:
@@ -150,7 +151,7 @@ def encode_success(
     pattern: str,
     context: str,
     weight: float = 1.5,
-    session: Optional[str] = None,
+    session: str | None = None,
 ) -> Rule:
     """
     Encode a success pattern.
@@ -189,7 +190,7 @@ def encode_failure(
     pattern: str,
     context: str,
     weight: float = 1.0,
-    session: Optional[str] = None,
+    session: str | None = None,
 ) -> Rule:
     """
     Encode a failure pattern.
@@ -257,7 +258,6 @@ def check_dissonance() -> DissonanceResult:
     # Calculate weighted totals (success at 1.5x)
     success_weight = success_count * 1.5
     failure_weight = failure_count * 1.0
-    total_weight = success_weight + failure_weight
 
     # Actual ratio
     actual_success_rate = success_count / total if total > 0 else 0

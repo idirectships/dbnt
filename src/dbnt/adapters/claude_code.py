@@ -1,9 +1,7 @@
 """Claude Code adapter - integrates with Claude Code's hook system."""
 
 import json
-import shutil
 from pathlib import Path
-from typing import Optional
 
 from dbnt.adapters.base import BaseAdapter
 from dbnt.core import Rule, RuleType
@@ -19,7 +17,7 @@ class ClaudeCodeAdapter(BaseAdapter):
     - Maintains compatibility with existing rule format
     """
 
-    def __init__(self, claude_dir: Optional[Path] = None):
+    def __init__(self, claude_dir: Path | None = None):
         self.claude_dir = claude_dir or Path.home() / ".claude"
         self.rules_dir = self.claude_dir / "rules"
         self.successes_dir = self.rules_dir / "successes"
@@ -102,7 +100,7 @@ class ClaudeCodeAdapter(BaseAdapter):
 
     def _install_hook(self) -> None:
         """Install the DBGT signal detection hook."""
-        hook_content = '''#!/bin/bash
+        hook_content = """#!/bin/bash
 # DBGT Signal Detection Hook
 # Installed by DBNT - Do Better Next Time
 # Detects positive feedback signals for success encoding
@@ -138,7 +136,7 @@ cat << EOF
     "message": "DBGT [$SIGNAL]: '$MATCH' - Consider encoding this success pattern"
 }
 EOF
-'''
+"""
         hook_path = self.hooks_dir / "dbgt-detector.sh"
         hook_path.write_text(hook_content)
         hook_path.chmod(0o755)
@@ -164,12 +162,9 @@ EOF
                     return  # Already registered
 
         # Add hook at the beginning
-        settings["hooks"]["UserPromptSubmit"].insert(0, {
-            "hooks": [{
-                "type": "command",
-                "command": hook_cmd
-            }]
-        })
+        settings["hooks"]["UserPromptSubmit"].insert(
+            0, {"hooks": [{"type": "command", "command": hook_cmd}]}
+        )
 
         self.settings_path.write_text(json.dumps(settings, indent=2))
 
@@ -184,11 +179,9 @@ EOF
 
         hook_cmd = "$HOME/.claude/hooks/dbgt-detector.sh"
         settings["hooks"]["UserPromptSubmit"] = [
-            entry for entry in settings["hooks"]["UserPromptSubmit"]
-            if not any(
-                hook.get("command") == hook_cmd
-                for hook in entry.get("hooks", [])
-            )
+            entry
+            for entry in settings["hooks"]["UserPromptSubmit"]
+            if not any(hook.get("command") == hook_cmd for hook in entry.get("hooks", []))
         ]
 
         self.settings_path.write_text(json.dumps(settings, indent=2))

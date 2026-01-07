@@ -1,7 +1,6 @@
 """Tests for signal detection."""
 
-import pytest
-from dbnt.signals.detector import detect_signal, SignalType, SignalStrength
+from dbnt.signals.detector import SignalStrength, SignalType, detect_signal
 
 
 class TestPositiveSignals:

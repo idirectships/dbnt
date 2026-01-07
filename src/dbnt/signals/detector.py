@@ -1,13 +1,13 @@
 """Signal detection - recognize positive/negative feedback without requiring anger."""
 
+import re
 from dataclasses import dataclass
 from enum import Enum
-import re
-from typing import Optional
 
 
 class SignalType(Enum):
     """Type of signal detected."""
+
     POSITIVE = "positive"
     NEGATIVE = "negative"
     NEUTRAL = "neutral"
@@ -15,6 +15,7 @@ class SignalType(Enum):
 
 class SignalStrength(Enum):
     """Strength of detected signal."""
+
     STRONG = "strong"
     MODERATE = "moderate"
     WEAK = "weak"
@@ -23,9 +24,10 @@ class SignalStrength(Enum):
 @dataclass
 class Signal:
     """Detected signal from user input."""
+
     type: SignalType
     strength: SignalStrength
-    match: Optional[str] = None
+    match: str | None = None
     weight: float = 1.0
 
     def should_encode(self) -> bool:
@@ -81,7 +83,7 @@ NEUTRAL = [
 ]
 
 
-def _match_patterns(text: str, patterns: list[str]) -> Optional[str]:
+def _match_patterns(text: str, patterns: list[str]) -> str | None:
     """Check if text matches any pattern, return the match."""
     text_lower = text.lower()
     for pattern in patterns:

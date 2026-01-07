@@ -1,7 +1,6 @@
 """Generic adapter - file-based, works anywhere."""
 
 from pathlib import Path
-from typing import Optional
 
 from dbnt.adapters.base import BaseAdapter
 from dbnt.core import Rule, RuleType
@@ -15,7 +14,7 @@ class GenericAdapter(BaseAdapter):
     Stores rules in ~/.dbnt/rules/ by default.
     """
 
-    def __init__(self, base_path: Optional[Path] = None):
+    def __init__(self, base_path: Path | None = None):
         self.base_path = base_path or Path.home() / ".dbnt"
         self.rules_dir = self.base_path / "rules"
         self.successes_dir = self.rules_dir / "successes"

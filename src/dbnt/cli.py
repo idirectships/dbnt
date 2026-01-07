@@ -1,12 +1,11 @@
 """DBNT CLI - Four letters to make AI better."""
 
 import click
-from pathlib import Path
 
-from dbnt.core import encode_success, encode_failure, check_dissonance, Category
-from dbnt.signals import detect_signal
 from dbnt.adapters.claude_code import ClaudeCodeAdapter
 from dbnt.adapters.generic import GenericAdapter
+from dbnt.core import check_dissonance, encode_failure, encode_success
+from dbnt.signals import detect_signal
 
 
 @click.group()
@@ -130,7 +129,7 @@ def dissonance():
 
     click.echo(f"\nDissonance Score: {result.score:.1%}")
     click.echo(f"Status: {result.status}")
-    click.echo(f"\nRules:")
+    click.echo("\nRules:")
     click.echo(f"  Success: {result.success_count} (weight: {result.success_weight})")
     click.echo(f"  Failure: {result.failure_count} (weight: {result.failure_weight})")
 
@@ -159,7 +158,7 @@ def status():
     cc = ClaudeCodeAdapter()
     gen = GenericAdapter()
 
-    click.echo(f"\nAdapters:")
+    click.echo("\nAdapters:")
     click.echo(f"  Claude Code: {'✓ installed' if cc.is_installed() else '✗ not installed'}")
     click.echo(f"  Generic: {'✓ installed' if gen.is_installed() else '✗ not installed'}")
 

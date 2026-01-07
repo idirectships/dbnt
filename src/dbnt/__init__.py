@@ -5,12 +5,12 @@ Not anger-driven. Signal-driven.
 """
 
 from dbnt.core import (
+    check_dissonance,
     encode_failure,
     encode_success,
-    check_dissonance,
     get_rules,
 )
-from dbnt.signals.detector import detect_signal, SignalType, SignalStrength
+from dbnt.signals.detector import SignalStrength, SignalType, detect_signal
 
 __version__ = "0.1.0"
 __all__ = [
