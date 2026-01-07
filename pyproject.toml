@@ -1,0 +1,101 @@
+[project]
+name = "dbnt"
+version = "0.1.0"
+description = "Do Better Next Time - Universal learning protocol for AI systems"
+readme = "README.md"
+license = "MIT"
+authors = [
+    { name = "Dru Garman", email = "drewgarman@gmail.com" }
+]
+requires-python = ">=3.10"
+keywords = ["ai", "learning", "reinforcement", "claude", "llm", "feedback", "signals"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
+]
+
+dependencies = [
+    "pyyaml>=6.0",
+    "click>=8.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "ruff>=0.1.0",
+    "mypy>=1.0",
+]
+
+# Future adapter packages
+claude = []  # dbnt[claude] - Claude Code integration (included by default for now)
+cursor = []  # dbnt[cursor] - Cursor IDE integration (planned)
+langchain = ["langchain-core>=0.1.0"]  # dbnt[langchain] - LangChain callback integration
+openai = []  # dbnt[openai] - OpenAI API integration (planned)
+all = ["dbnt[langchain]"]
+
+[project.scripts]
+dbnt = "dbnt.cli:main"
+
+[project.entry-points."dbnt.adapters"]
+claude-code = "dbnt.adapters.claude_code:ClaudeCodeAdapter"
+generic = "dbnt.adapters.generic:GenericAdapter"
+
+[project.urls]
+Homepage = "https://github.com/idirectships/dbnt"
+Repository = "https://github.com/idirectships/dbnt"
+Documentation = "https://github.com/idirectships/dbnt#readme"
+Issues = "https://github.com/idirectships/dbnt/issues"
+Changelog = "https://github.com/idirectships/dbnt/blob/main/CHANGELOG.md"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/dbnt"]
+
+[tool.hatch.version]
+path = "src/dbnt/__init__.py"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP", "B", "C4", "SIM", "TCH"]
+ignore = ["E501"]  # Line length handled by formatter
+
+[tool.ruff.lint.isort]
+known-first-party = ["dbnt"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+exclude = ["tests"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"
+
+[tool.coverage.run]
+source = ["src/dbnt"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]
