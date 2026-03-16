@@ -241,7 +241,7 @@ Do NOT extract:
 - Vague labels without actionable detail
 - Project-specific implementation details (file names, function names, variable names)
 
-Output ONLY a JSON array. Each item: {"pattern": "...", "type": "decision|preference|mistake|approach", "confidence": 0.0-1.0}
+Output ONLY a JSON array. Each item: {{"pattern": "...", "type": "decision|preference|mistake|approach", "confidence": 0.0-1.0}}
 If nothing notable: []
 
 TRANSCRIPT:
