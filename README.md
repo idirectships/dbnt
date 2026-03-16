@@ -1,191 +1,406 @@
-# DBNT - Do Better Next Time
+# DBNT — Do Better Next Time
 
-Universal learning protocol for AI systems. Not anger-driven. Signal-driven.
+> Universal feedback protocol and learning system for AI agents. Turn corrections into persistent, weighted rules that survive across sessions.
 
-## What It Is
+[![Tests](https://github.com/idirectships/dbnt/actions/workflows/ci.yml/badge.svg)](https://github.com/idirectships/dbnt/actions)
+[![PyPI version](https://badge.fury.io/py/dbnt.svg)](https://pypi.org/project/dbnt/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 
-DBNT is a behavioral encoding system that helps AI systems learn from both failures AND successes across sessions.
-
-```
-DBNT = Do Better Next Time (encode failures)
-DBGT = Do Better... Got It (encode successes)
-```
+---
 
 ## The Problem
 
-Most AI systems:
-- Have no cross-session learning
-- Or only learn from negative feedback (errors, corrections)
-- Result: 65%+ learning dissonance - systems that know what NOT to do but can't replicate success
+Your AI agents make the same mistakes every session. You correct them, they improve — and then the context window resets and they're back to square one. Traditional memory systems record what went wrong, which creates agents that know a hundred ways to fail but can't reliably replicate success. DBNT encodes both sides of the feedback loop with information-theoretic weighting: success signals carry 1.5x weight because a working path is rarer and more valuable than a broken one.
 
-## The Solution
+---
 
-DBNT provides:
-- **Signal detection** - Recognize positive/negative feedback without requiring anger
-- **Weighted encoding** - Success signals weight 1.5x over failure (inverted from typical)
-- **Persistent rules** - Learnings survive context clears, session boundaries, model updates
-- **Dissonance monitoring** - Track the balance between success/failure encoding
+## What DBNT Does
 
-## Core Insight
+Five subsystems, one goal — agents that get better over time:
 
-> Failure tells you ONE path to avoid (from infinite bad paths).
-> Success tells you ONE path that WORKS (from few good paths).
-> Success is more information-dense than failure.
+- **Protocol Engine** — Escalating correction commands (DB → DBN → DBNM → DBYC) with point scoring and structured action routing
+- **Signal Detection** — Classifies natural language feedback without requiring special syntax. "That's not quite right" is as valid as `dbn`
+- **Rule Encoding** — Stores learnings as human-readable markdown with weighted frontmatter. Success files and failure files, separately tracked
+- **Learning System** — Pattern detection groups similar corrections. Three occurrences of the same pattern auto-promotes it to a permanent rule
+- **FSRS Decay Engine** — Rules that get applied grow stronger. Rules that sit unused fade toward archival. Based on the FSRS-6 spaced-repetition algorithm
 
-The Ralph Wiggum Problem: knowing 100 ways to fail doesn't teach you how to succeed.
+---
 
-## Installation
+## Why Success Signals Outweigh Failure
+
+Traditional approaches minimize loss. DBNT maximizes learning.
+
+The intuition: there are infinite ways to fail a task, but only a handful of ways to do it well. A failure signal tells you one path to avoid out of infinite bad paths. A success signal tells you one path that works out of very few good paths — that's a higher information density per signal.
+
+This is the **Ralph Wiggum Problem**: knowing 100 things not to do doesn't tell you what to do. Doctors study healthy patients. Athletes watch film of good plays. DBNT weights the game film accordingly.
+
+> Failure: 1.0x weight — avoid this path
+> Success: 1.5x weight — replicate this path
+
+---
+
+## Quick Start
+
+### Installation
+
+**Claude Code Plugin** (recommended for Claude Code users):
+```bash
+/install github:idirectships/dbnt
+```
+
+**Python Package** (for library usage, other adapters, or CLI):
+```bash
+pip install dbnt
+```
+
+### 60-Second Example
 
 ```bash
-# Claude Code
-dbnt install --adapter claude-code
+# Your agent made a mistake. Signal it.
+dbnt process "dbn"
+# → Command: DBN | Action: encode_success | Response: "Yes Chef!"
 
-# Generic (any system)
-dbnt install --adapter generic
+# Check what signal natural language carries
+dbnt detect "that's not quite right"
+# → NEGATIVE | moderate | weight=0.8
+
+dbnt detect "perfect, ship it"
+# → POSITIVE | strong | weight=1.5
+
+# Encode what worked
+dbnt success "Use bun not npm" -c code -x "Project standard"
+
+# Encode what failed
+dbnt failure "Pushed directly to main" -c protocol -x "Always use feature branches"
+
+# Run the decay sweep — archives stale rules, boosts active ones
+dbnt sweep
+
+# Full system view
+dbnt status
 ```
 
-## Usage
-
-### Signal Detection (No Yelling Required)
+### Python API
 
 ```python
-from dbnt import detect_signal
+from dbnt import Protocol, detect_signal, encode_success
 
-# These all work - no anger needed
-detect_signal("that's not quite right")     # → NEGATIVE (mild)
-detect_signal("hmm, try again")             # → NEGATIVE (mild)
-detect_signal("perfect")                     # → POSITIVE (strong)
-detect_signal("that works")                  # → POSITIVE (moderate)
-```
+# Process a feedback command
+protocol = Protocol()
+response = protocol.process("dbnm")
+# → Command: DBNM | Action: encode_success | "Yes Chef! Fixed, encoded, moving on."
 
-### Manual Encoding
+# Classify a natural language signal
+signal = detect_signal("that's not quite right")
+# → SignalResult(polarity=NEGATIVE, strength=moderate, weight=0.8)
 
-```python
-from dbnt import encode_success, encode_failure
+signal = detect_signal("perfect, ship it")
+# → SignalResult(polarity=POSITIVE, strength=strong, weight=1.5)
 
-# After something works
+# Record a success
 encode_success(
-    category="code-pattern",
+    category="code",
     pattern="Used dataclass for config objects",
-    context="User approved the implementation"
-)
-
-# After something fails
-encode_failure(
-    category="protocol",
-    pattern="Used npm instead of pnpm",
-    context="Project requires pnpm"
+    context="Clean, typed, no dict key errors"
 )
 ```
-
-### Dissonance Check
 
 ```python
-from dbnt import check_dissonance
+from dbnt import LearningStore, PatternDetector, DecayEngine
 
-result = check_dissonance()
-# {
-#     "score": 0.15,
-#     "status": "balanced",
-#     "success_rules": 12,
-#     "failure_rules": 8,
-#     "recommendation": None
-# }
+store = LearningStore()
+store.add("Always use timezone-aware datetimes", domain="code", importance=3)
+store.add("Use timezone-aware datetime objects", domain="code", importance=2)
+store.add("Always use UTC for datetime storage", domain="code", importance=4)
+
+# Three similar learnings → pattern detected
+detector = PatternDetector()
+patterns = detector.detect(store.get_unpromoted())
+# → [PatternGroup(count=3, confidence="low", should_promote=True)]
+
+# Rules decay when unused, strengthen when applied
+engine = DecayEngine(store)
+engine.boost("rule_timezone_abc")       # Applied → stability increases
+status = engine.check("rule_old_123")   # → {"status": "archive", "retrievability": 0.2}
 ```
 
-## Adapters
+---
+
+## The Learning Path
+
+DBNT is designed for developers who've moved past basic AI chat. Here's how the capability layers stack:
+
+### Level 1: Single Agent Feedback Loop
+
+Wire DBNT into your AI tool. Every mistake your agent makes, every correction you give, gets encoded as a rule. The next session, that rule is injected back into context. The agent stops repeating itself.
+
+- Install DBNT, run `dbnt install --adapter claude-code` (or `--adapter generic`)
+- Agent makes a mistake → you say "not quite" → signal detected → rule encoded
+- Next session: rule is loaded, mistake doesn't recur
+
+This alone eliminates 80% of repeat errors.
+
+### Level 2: Persistent Rules with Lifecycle Management
+
+Rules accumulate. Without management, you end up with hundreds of stale files that slow context loading and contradict each other. FSRS-6 handles this automatically.
+
+- Frequently-applied rules gain stability — they're harder to decay
+- Unused rules fade — `dbnt sweep` archives them
+- `dbnt dissonance` surfaces conflicting rules before they cause issues
+
+The rule store stays lean. Only actively relevant rules survive.
+
+### Level 3: Skill Improvement Through Pattern Promotion
+
+When you correct the same class of mistake three or more times, DBNT detects the pattern and auto-promotes it to a permanent, high-confidence rule. Individual learnings become structural improvements.
+
+- Similar corrections cluster automatically
+- Promotion threshold: 3+ occurrences with pattern confidence
+- Skills versioned: `code-review v1 → v2 → v3`
+- Rollback available if a new version performs worse
+
+Your agent's behavior across a domain improves without manual rule-writing.
+
+### Level 4: Multi-Agent Coordination (The Horizon)
+
+This is where DBNT becomes a swarm memory layer. The protocol and storage architecture already support it — shared rule stores, cross-agent learning propagation, probabilistic peer review between agents.
+
+Agent A learns something. Agent B gets that learning without making the mistake itself. Agents critique each other's outputs. The swarm's collective rule base evolves.
+
+Level 4 is where this framework is heading. We run a production system across multiple nodes that uses DBNT as its learning substrate — agents coordinating autonomously, rules propagating across the network, skills compounding over time. The implementation details of that system aren't open source, but the foundation you'd build it on is exactly this.
+
+---
+
+## Bring Your Own Everything
+
+### Bring Your Own Model
+
+DBNT doesn't call any LLM APIs. It processes feedback signals and manages rule storage. Your model choice is completely orthogonal. Run it with Claude, GPT-4, Ollama, LM Studio, llama.cpp — anything that generates text and can receive context injection.
+
+If you want transcript-based signal extraction (parsing conversation history for implicit feedback), that processing happens on your stack with your model.
+
+### Bring Your Own Tools
+
+Adapters connect DBNT to whatever AI tooling you use. The Claude Code adapter hooks `UserPromptSubmit` and `Stop` events. The generic adapter uses filesystem watching and markdown files — it works with anything. Adding your own adapter is around 50 lines implementing a simple interface.
+
+```bash
+dbnt install --adapter claude-code    # Installs to ~/.claude/hooks/ and ~/.claude/rules/
+dbnt install --adapter generic         # Installs to ~/.dbnt/rules/
+```
+
+### Bring Your Own Keys
+
+DBNT has no API keys, no cloud dependencies, no telemetry. Everything runs locally. The rule store is a directory of markdown files. The learning store is a SQLite file. The score history is JSON. You own all of it.
+
+---
+
+## Protocol Commands
+
+The escalation ladder — each level signals increasing severity and triggers different encoding behavior:
+
+| Command | Meaning | Points | Agent Response |
+|---------|---------|--------|----------------|
+| `db` | Do Better — recoverable mistake | −1 | Fix it + encode the success pattern |
+| `dbn` | Do Better Now — same class of mistake | −1 | Fix it faster + encode |
+| `dbnm` | Do Better Now Move — fix it and keep going | −1 | Fix + encode + don't stop to discuss |
+| `dbyc` | Critical — you had to take over | −2 | Encode BOTH the failure AND what worked |
+| `good` / `fixed` / `ship it` | Confirmed working | +3 | Acknowledge (1.5x weighted) |
+| `tweak` / `almost` | Close, iterate | +0.5 → −1 | Degrades on repetition |
+
+The required response to any correction command is **"Yes Chef!"** — then fix, encode, continue. The kitchen protocol framing is intentional: corrections are instructions, not critiques.
+
+`dbyc` is the most important signal. When a human has to step in and finish the work themselves, there are two learnings to capture: what the agent did wrong, and what the human did right. Both get encoded.
+
+---
+
+## Signal Detection
+
+DBNT classifies feedback from natural language, so you don't need to remember commands in the moment. Common signal mappings:
+
+| Natural Language | Signal | Weight |
+|-----------------|--------|--------|
+| "perfect", "ship it", "exactly right" | POSITIVE_STRONG | 1.5x |
+| "good", "that works", "correct" | POSITIVE_MODERATE | 1.2x |
+| "ok", "sure", "fine" | NEUTRAL | 1.0x |
+| "not quite", "close but", "almost" | NEGATIVE_MODERATE | 0.8x |
+| "wrong", "that's broken", "no" | NEGATIVE_STRONG | 1.0x (encode failure) |
+| "i had to fix this myself" | CRITICAL | 2.0x (encode both) |
+
+Silence is treated as neutral approval. The system doesn't require active positive feedback to function — only corrections.
+
+---
+
+## Rule Storage
+
+Rules live in `~/.dbnt/rules/`:
+
+```
+~/.dbnt/
+├── rules/
+│   ├── successes/     # What worked — 1.5x weighted
+│   └── failures/      # What failed — 1.0x weighted
+├── learnings.db       # SQLite — pattern detection, decay tracking
+└── score.json         # Running score history
+```
+
+A rule file looks like this:
+
+```markdown
+---
+id: rule_timezone_2024_abc1
+category: code
+weight: 1.5
+stability: 4.2
+retrievability: 0.87
+created: 2024-11-03
+last_applied: 2024-11-14
+---
+
+# Always Use Timezone-Aware Datetimes
+
+Always use timezone-aware datetime objects. Store in UTC, display in local time.
+
+## Context
+Three separate corrections on datetime handling across different projects.
+Auto-promoted from pattern after 3+ occurrences.
+```
+
+Human-readable. Diffable. Version-controllable if you want.
+
+---
+
+## FSRS-6 Decay
+
+Rules use the FSRS retrievability formula:
+
+```
+R(t, S) = (1 + t / (9 × S))^(-1)
+```
+
+Where `t` = days since last application, `S` = stability score. Apply a rule → stability increases, slower decay. Ignore a rule → retrievability drops toward the archival threshold.
+
+This prevents the rule store from bloating with stale context that hurts more than it helps.
+
+---
+
+## CLI Reference
+
+```bash
+# Protocol
+dbnt process "dbnm"              # Detect and route a command
+dbnt score                        # View scoring history
+
+# Signals
+dbnt detect "that's perfect"      # Classify a signal
+
+# Rules
+dbnt success "Use bun not npm" -c code -x "Project standard"
+dbnt failure "Pushed to main" -c protocol -x "Always use feature branches"
+
+# Learning
+dbnt learn "Always validate at boundaries" -d code -i 3
+dbnt patterns                     # Show recurring patterns
+dbnt promote                      # Auto-promote qualifying patterns to rules
+dbnt sweep                        # Run FSRS decay check — archives stale rules
+
+# Status
+dbnt status                       # Full system overview
+dbnt dissonance                   # Surface conflicting success/failure signals
+```
+
+---
+
+## Adapters and Integrations
 
 | Adapter | Status | Description |
 |---------|--------|-------------|
-| `claude-code` | ✅ | Hooks into Claude Code's hook system |
-| `cursor` | 🚧 | Cursor IDE rules integration |
-| `langchain` | 🚧 | LangChain callback integration |
-| `generic` | ✅ | File-based, works anywhere |
+| Claude Code | Stable | Hooks `UserPromptSubmit` + `Stop`, injects rules into context |
+| Generic | Stable | File-based, filesystem events — works with any tool |
+| LangChain | Planned | Callback handler on chain completion |
+| CrewAI | Planned | Task completion hook |
+| AutoGen | Planned | Agent feedback loop integration |
+| Cursor | Planned | `.cursorrules` injection |
+| MCP Server | Planned | Model Context Protocol adapter |
+
+---
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────┐
-│                    DBNT Core                     │
-├─────────────────────────────────────────────────┤
-│  Signal Detector  │  Rule Encoder  │  Dissonance │
-│    (NLP-based)    │   (weighted)   │  Calculator │
-└─────────────────────────────────────────────────┘
-           │                │               │
-           ▼                ▼               ▼
-┌──────────────┐  ┌──────────────┐  ┌──────────────┐
-│ Claude Code  │  │    Cursor    │  │   Generic    │
-│   Adapter    │  │   Adapter    │  │   Adapter    │
-└──────────────┘  └──────────────┘  └──────────────┘
-           │                │               │
-           ▼                ▼               ▼
-     ~/.claude/        .cursorrules      ./dbnt/
-       rules/                             rules/
+Human feedback
+    │
+    ├─ "dbnm" ────────► Protocol Engine ──► Score tracking + encode action
+    ├─ "perfect" ─────► Signal Detector ──► POSITIVE (1.5x weight)
+    └─ "not quite" ───► Signal Detector ──► NEGATIVE (1.0x weight)
+                                │
+                                ▼
+                     Rule files (markdown)
+                                │
+                                ▼
+                    Learning Store (SQLite)
+                                │
+                                ▼
+                     Pattern Detector
+                     (3+ similar → promote)
+                                │
+                                ▼
+                    FSRS-6 Decay Engine
+                    ├─ Applied? ──► Boost stability
+                    └─ Unused?  ──► Fade → archive
 ```
 
-## Signal Strength
+No middleware. No cloud calls. The signal goes in, the rule comes out, the agent gets better.
 
-| Signal | Type | Strength | Action |
-|--------|------|----------|--------|
-| "perfect", "exactly right", "ship it" | Positive | STRONG | Create success rule |
-| "great", "nice", "thanks" | Positive | MODERATE | Log for review |
-| "that's wrong", "no", "fix this" | Negative | STRONG | Create failure rule |
-| "hmm", "not quite", "try again" | Negative | MODERATE | Log for review |
-| "ok", "sure" | Neutral | WEAK | No action |
+---
 
-## Encoding Weights
+## Comparison
 
-```
-Success signals: 1.5x weight
-Failure signals: 1.0x weight
+| Feature | DBNT | Traditional Logging | Vector Memory |
+|---------|------|-------------------|---------------|
+| Persists across sessions | Yes | No | Partial |
+| Success/failure weighting | 1.5x / 1.0x | Equal | N/A |
+| Human-readable rules | Markdown | Logs | Vectors |
+| Decay / lifecycle | FSRS-6 | Manual | None |
+| LLM-agnostic | Yes | Yes | Usually not |
+| Local-first | Yes | Varies | Usually cloud |
+| Zero cloud dependencies | Yes | Varies | Heavy |
+| Pattern auto-promotion | Yes | No | No |
+| Multi-agent ready | Yes (shared store) | No | Partial |
 
-Target ratio: 60% success rules, 40% failure rules
-```
+---
 
-## Why 1.5x for Success?
+## Contributing
 
-Traditional ML minimizes loss (avoid bad outcomes). But human expertise works differently:
+Issues, PRs, and discussion welcome on [GitHub](https://github.com/idirectships/dbnt).
 
-- Experts study successful cases
-- Medical training: study healthy patients, not just diseased
-- Sports: watch film of good plays, not just mistakes
-- Music: practice what sounds good
+What we accept without prior discussion:
+- New adapter implementations
+- Signal detection improvements and edge cases
+- Test coverage additions
+- Documentation fixes
 
-DBNT-dominant learning mirrors human expertise acquisition.
+What needs a discussion issue first:
+- Changes to the core protocol command set
+- Modifications to the FSRS decay parameters
+- New storage backends
 
-## Configuration
-
-```yaml
-# dbnt.yaml
-version: 1
-
-signals:
-  positive:
-    strong: ["perfect", "exactly", "ship it", "nailed it"]
-    moderate: ["great", "nice", "thanks", "good"]
-  negative:
-    strong: ["wrong", "no", "fix", "broken"]
-    moderate: ["hmm", "not quite", "try again"]
-
-weights:
-  success: 1.5
-  failure: 1.0
-
-targets:
-  success_ratio: 0.60
-  max_dissonance: 0.20
-
-storage:
-  adapter: claude-code  # or: cursor, generic
-  path: ~/.dbnt/rules/
-```
+---
 
 ## License
 
 MIT
 
-## Related
+---
 
-- [Tesseract](../tesseract) - Hierarchical knowledge compression
-- [Claude Code](https://claude.com/claude-code) - AI coding assistant
-- [Gas Town](https://steve-yegge.medium.com) - Inspiration for agent swarms
+## What's Next
+
+DBNT is a foundation layer, not a finished product. A single agent with persistent memory is useful. An agent whose skills compound over weeks of corrections is more useful. A network of agents sharing a rule store and improving collectively is something else entirely.
+
+We run a production system built on this foundation — multiple nodes coordinating autonomously, rules propagating across agents, skills versioning and rolling back based on performance signals. That system isn't open source. But the protocol it runs on is exactly what you're installing.
+
+Start at Level 1. Wire it into your current setup. Watch the correction rate drop over a few weeks. Then decide how far you want to take it.
+
+---
+
+*Built by [Dru Garman](https://github.com/idirectships). MIT licensed.*

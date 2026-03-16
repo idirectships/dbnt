@@ -1,29 +1,32 @@
 [project]
 name = "dbnt"
-version = "0.1.0"
-description = "Do Better Next Time - Universal learning protocol for AI systems"
+version = "0.5.0"
+description = "Universal feedback protocol and learning system for AI agents. Turn corrections into persistent, weighted rules."
 readme = "README.md"
 license = "MIT"
 authors = [
     { name = "Dru Garman", email = "drewgarman@gmail.com" }
 ]
 requires-python = ">=3.10"
-keywords = ["ai", "learning", "reinforcement", "claude", "llm", "feedback", "signals"]
+keywords = ["ai", "agents", "learning", "feedback", "reinforcement", "llm", "claude", "autonomous", "memory", "swarm", "protocol", "rules"]
 classifiers = [
     "Development Status :: 3 - Alpha",
+    "Environment :: Console",
     "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
     "Topic :: Software Development :: Libraries :: Python Modules",
+    "Framework :: Pytest",
     "Typing :: Typed",
 ]
 
 dependencies = [
-    "pyyaml>=6.0",
     "click>=8.0",
 ]
 

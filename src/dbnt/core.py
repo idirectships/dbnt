@@ -1,7 +1,8 @@
 """DBNT Core - Rule encoding and dissonance calculation."""
 
+import secrets
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
 
@@ -33,7 +34,7 @@ class Category(Enum):
 
 @dataclass
 class Rule:
-    """A DBNT/DBGT rule."""
+    """A DBNT rule."""
 
     id: str
     type: RuleType
@@ -41,7 +42,7 @@ class Rule:
     pattern: str
     context: str
     weight: float = 1.0
-    created: datetime = field(default_factory=datetime.now)
+    created: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     source_session: str | None = None
 
     def to_dict(self) -> dict:
@@ -94,7 +95,7 @@ class DissonanceResult:
 
 
 class RuleStore:
-    """Storage for DBNT/DBGT rules."""
+    """Storage for DBNT rules."""
 
     def __init__(self, base_path: Path | None = None):
         self.base_path = base_path or Path.home() / ".dbnt" / "rules"
@@ -108,9 +109,10 @@ class RuleStore:
         self.failure_path.mkdir(parents=True, exist_ok=True)
 
     def _generate_id(self, category: Category) -> str:
-        """Generate a unique rule ID."""
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        return f"{category.value}_{timestamp}"
+        """Generate a unique rule ID with collision prevention."""
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        suffix = secrets.token_hex(2)
+        return f"{category.value}_{timestamp}_{suffix}"
 
     def save(self, rule: Rule) -> Path:
         """Save a rule to disk."""
@@ -124,8 +126,10 @@ class RuleStore:
 
     def load_all(self) -> list[Rule]:
         """Load all rules from disk."""
-        # For now, return empty - full implementation later
-        return []
+        from dbnt.storage.rules import load_rules_from_dir
+        successes = load_rules_from_dir(self.success_path)
+        failures = load_rules_from_dir(self.failure_path)
+        return successes + failures
 
     def count(self) -> tuple[int, int]:
         """Count success and failure rules."""
@@ -155,8 +159,6 @@ def encode_success(
 ) -> Rule:
     """
     Encode a success pattern.
-
-    DBGT - Do Better... Got It
 
     Args:
         category: One of: format, code, explain, tool, comm
@@ -194,8 +196,6 @@ def encode_failure(
 ) -> Rule:
     """
     Encode a failure pattern.
-
-    DBNT - Do Better Next Time
 
     Args:
         category: One of: protocol, preference, waste, gap, integration
@@ -258,11 +258,12 @@ def check_dissonance() -> DissonanceResult:
     # Calculate weighted totals (success at 1.5x)
     success_weight = success_count * 1.5
     failure_weight = failure_count * 1.0
+    weighted_total = success_weight + failure_weight
 
-    # Actual ratio
-    actual_success_rate = success_count / total if total > 0 else 0
+    # Actual ratio using weights (success signals are 1.5x more valuable)
+    actual_success_rate = success_weight / weighted_total
 
-    # Target: 60% success
+    # Target: 60% weighted success
     target_success_rate = 0.60
     dissonance = abs(target_success_rate - actual_success_rate)
 
