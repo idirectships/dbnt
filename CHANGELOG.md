@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-03-15
+
+### Added
+- FSRS-based spaced repetition decay for learning rules
+- Claude Code plugin packaging (`.claude-plugin/`)
+- CI workflow (GitHub Actions, Python 3.10-3.13 matrix)
+- `dbnt rules` and `dbnt show` CLI commands
+- DBGT (Do Better Good Time) success protocol
+- Adapter plugin system (`dbnt.adapters` entry points)
+- llms.txt for agent discovery
+- AGENTS.md for AI developer onboarding
+- 84 tests (up from 17)
+
+### Changed
+- README rewritten for intermediate autonomous developers
+- pyproject.toml expanded (12 keywords, classifiers, URLs)
+- Architecture: BYOK model, Level 1-4 adoption path
+
+### Fixed
+- Signal detection accuracy improvements
+- Rule encoding weight calibration
+
+## [0.2.0] - 2026-01-06
+
 ### Added
 - Initial DBNT/DBGT protocol implementation
 - Signal detection (positive/negative/neutral)
