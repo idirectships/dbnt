@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-03-17
+### Added
+- Session-level dedup in LearningStore.add()
+- pyrightconfig.json for Pyright static analysis
+### Fixed
+- Pyright diagnostic on __exit__ signature
+
 ## [0.5.0] - 2026-03-15
 
 ### Added
