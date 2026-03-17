@@ -135,7 +135,7 @@ class LearningStore:
     def __enter__(self) -> LearningStore:
         return self
 
-    def __exit__(self, *args: object) -> None:
+    def __exit__(self, *args: object) -> None:  # pyright: ignore[reportUnusedVariable]
         self.close()
 
     @property
