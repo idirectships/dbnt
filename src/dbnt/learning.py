@@ -119,6 +119,7 @@ CREATE TABLE IF NOT EXISTS rule_decay (
 
 CREATE INDEX IF NOT EXISTS idx_learnings_domain ON learnings(domain);
 CREATE INDEX IF NOT EXISTS idx_learnings_promoted ON learnings(promoted_to);
+CREATE INDEX IF NOT EXISTS idx_learnings_session_text ON learnings(session_id);
 """
 
 
@@ -156,7 +157,20 @@ class LearningStore:
         importance: float = 1.0,
         session_id: str | None = None,
     ) -> int:
-        """Add a learning. Returns the learning ID."""
+        """Add a learning. Returns the learning ID.
+
+        If a learning with identical text already exists for the same session,
+        returns the existing ID without inserting a duplicate.
+        """
+        if session_id:
+            key = text.strip().lower()[:80]
+            existing = self.conn.execute(
+                "SELECT id FROM learnings WHERE session_id = ? AND LOWER(SUBSTR(text, 1, 80)) = ?",
+                (session_id, key),
+            ).fetchone()
+            if existing:
+                return existing["id"]  # skip duplicate
+
         cursor = self.conn.execute(
             "INSERT INTO learnings (text, source, domain, importance, created_at, session_id) "
             "VALUES (?, ?, ?, ?, ?, ?)",
