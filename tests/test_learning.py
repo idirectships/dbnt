@@ -83,6 +83,34 @@ class TestLearningStore:
         assert counts["ops"] == 1
         store.close()
 
+    def test_session_dedup_same_session_returns_original_id(self):
+        store = LearningStore(db_path=Path(tempfile.mkdtemp()) / "test.db")
+        text = "Never push directly to main"
+        sid = "session-abc"
+        id1 = store.add(text, session_id=sid)
+        id2 = store.add(text, session_id=sid)
+        assert id1 == id2  # deduped — same row returned
+        assert len(store.get_unpromoted()) == 1
+        store.close()
+
+    def test_session_dedup_different_session_creates_new_row(self):
+        store = LearningStore(db_path=Path(tempfile.mkdtemp()) / "test.db")
+        text = "Never push directly to main"
+        id1 = store.add(text, session_id="session-1")
+        id2 = store.add(text, session_id="session-2")
+        assert id1 != id2  # different sessions — two rows
+        assert len(store.get_unpromoted()) == 2
+        store.close()
+
+    def test_session_dedup_different_text_same_session_creates_new_row(self):
+        store = LearningStore(db_path=Path(tempfile.mkdtemp()) / "test.db")
+        sid = "session-abc"
+        id1 = store.add("Always use UTC datetimes", session_id=sid)
+        id2 = store.add("Never push directly to main", session_id=sid)
+        assert id1 != id2  # different text — two rows
+        assert len(store.get_unpromoted()) == 2
+        store.close()
+
     def test_decay_state_persistence(self):
         store = LearningStore(db_path=Path(tempfile.mkdtemp()) / "test.db")
         state = DecayState(stability=5.0, difficulty=0.3)
