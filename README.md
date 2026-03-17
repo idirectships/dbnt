@@ -15,6 +15,35 @@ Your AI agents make the same mistakes every session. You correct them, they impr
 
 ---
 
+## Why DBNT — The Structured Feedback Gap
+
+Recent research on agentic AI systems reveals a consistent pattern: the bottleneck isn't model capability. It's the feedback loop between human and AI.
+
+An MIT study found that human involvement can actually *degrade* AI performance when based on unstructured intuition — accuracy dropped from 73% (AI alone) to 69% when humans injected gut-feeling corrections. But when that same human input was structured and severity-graded, hybrid human-AI systems achieved +43% engagement improvement over either pure-AI or pure-human approaches. Specialized domain expertise delivered through structured channels pushed accuracy to 90%, compared to 81% human-only or 73% AI-only.
+
+The failure mode is equally telling: 39% of deep research agent failures stem from "strategic content fabrication" — AI generating plausible but unsupported output. Even OpenAI's deep research tools carry an 8-13% error margin in their most thorough modes. The paper's conclusion: the emerging role is "AI Orchestrator," where humans direct multiple AI tools through structured feedback rather than open-ended conversation.
+
+Every study in this space identifies the same missing piece: a structured protocol for human-to-AI correction signals. Not chat. Not thumbs-up/thumbs-down. A system that grades severity, distinguishes signal types, encodes learnings persistently, and weights success paths higher than failure paths.
+
+That is what DBNT implements.
+
+### Unstructured Feedback vs DBNT Protocol
+
+| Dimension | Unstructured Feedback | DBNT Protocol |
+|-----------|----------------------|---------------|
+| Signal clarity | Ambiguous ("hmm, try again") | Severity-graded (DB/DBN/DBNM/DBYC) |
+| Persistence | Lost at session boundary | Encoded as rules, survives indefinitely |
+| Success handling | Ignored or undifferentiated | Weighted 1.5x, separately tracked |
+| Failure handling | Vague disapproval | Categorized, pattern-detected, auto-promoted |
+| Measured effect on accuracy | -4% vs AI alone (MIT) | Structured hybrid: +43% engagement, 90% accuracy |
+| Content fabrication defense | None | Signal detection catches drift; corrections encode immediately |
+| Learning lifecycle | Accumulates without pruning | FSRS-6 decay — stale rules archive, active rules strengthen |
+| Multi-agent readiness | N/A | Shared rule stores, cross-agent propagation |
+
+The research quantifies what practitioners already know: telling an AI "that's wrong" doesn't scale. Telling it *what severity of wrong*, encoding *what right looks like*, and managing those learnings over time — that scales.
+
+---
+
 ## What DBNT Does
 
 Five subsystems, one goal — agents that get better over time:
