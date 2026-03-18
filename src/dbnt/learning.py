@@ -156,20 +156,39 @@ class LearningStore:
         domain: str = "general",
         importance: float = 1.0,
         session_id: str | None = None,
+        cross_session_dedup: bool = True,
     ) -> int:
         """Add a learning. Returns the learning ID.
 
-        If a learning with identical text already exists for the same session,
-        returns the existing ID without inserting a duplicate.
+        Dedup logic (both checks use the first 80 normalized chars):
+        1. Cross-session dedup (default ON): if identical text already exists in
+           ANY session, return the existing ID without inserting. This prevents
+           the same pattern being re-extracted in every new session and inflating
+           the pattern detector's counts.
+        2. Within-session dedup: if the same text appears twice in the same
+           session, return the existing ID. Runs even when cross_session_dedup
+           is False.
+
+        Set cross_session_dedup=False to allow the same text to accumulate
+        across sessions (e.g. for explicit frequency tracking).
         """
+        key = text.strip().lower()[:80]
+
+        if cross_session_dedup:
+            existing = self.conn.execute(
+                "SELECT id FROM learnings WHERE LOWER(SUBSTR(text, 1, 80)) = ?",
+                (key,),
+            ).fetchone()
+            if existing:
+                return existing["id"]  # skip cross-session duplicate
+
         if session_id:
-            key = text.strip().lower()[:80]
             existing = self.conn.execute(
                 "SELECT id FROM learnings WHERE session_id = ? AND LOWER(SUBSTR(text, 1, 80)) = ?",
                 (session_id, key),
             ).fetchone()
             if existing:
-                return existing["id"]  # skip duplicate
+                return existing["id"]  # skip within-session duplicate
 
         cursor = self.conn.execute(
             "INSERT INTO learnings (text, source, domain, importance, created_at, session_id) "

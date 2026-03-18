@@ -93,12 +93,32 @@ class TestLearningStore:
         assert len(store.get_unpromoted()) == 1
         store.close()
 
-    def test_session_dedup_different_session_creates_new_row(self):
+    def test_session_dedup_different_session_creates_new_row_when_disabled(self):
+        # cross_session_dedup=False: same text in different sessions = two rows
+        store = LearningStore(db_path=Path(tempfile.mkdtemp()) / "test.db")
+        text = "Never push directly to main"
+        id1 = store.add(text, session_id="session-1", cross_session_dedup=False)
+        id2 = store.add(text, session_id="session-2", cross_session_dedup=False)
+        assert id1 != id2  # different sessions, dedup disabled — two rows
+        assert len(store.get_unpromoted()) == 2
+        store.close()
+
+    def test_cross_session_dedup_returns_existing_id(self):
+        # Default: same text extracted in two different sessions → single row
         store = LearningStore(db_path=Path(tempfile.mkdtemp()) / "test.db")
         text = "Never push directly to main"
         id1 = store.add(text, session_id="session-1")
         id2 = store.add(text, session_id="session-2")
-        assert id1 != id2  # different sessions — two rows
+        assert id1 == id2  # deduped across sessions — same row returned
+        assert len(store.get_unpromoted()) == 1
+        store.close()
+
+    def test_cross_session_dedup_different_text_creates_new_row(self):
+        # Cross-session dedup only dedupes identical text; different text always inserts
+        store = LearningStore(db_path=Path(tempfile.mkdtemp()) / "test.db")
+        id1 = store.add("Always use UTC datetimes", session_id="session-1")
+        id2 = store.add("Never push directly to main", session_id="session-2")
+        assert id1 != id2  # different text — two rows even with default dedup
         assert len(store.get_unpromoted()) == 2
         store.close()
 
