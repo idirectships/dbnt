@@ -21,7 +21,7 @@ The bottleneck in agentic AI isn't model capability. It's the feedback loop betw
 
 Unstructured corrections — "that's wrong, try again" — don't transfer across sessions, don't distinguish severity, and don't accumulate into durable knowledge. The agent improves within a conversation, then resets. You correct the same mistake next week.
 
-The failure mode compounds: AI agents generating plausible but unsupported output (hallucination) is a known and documented problem across every major provider. Even production-grade deep research tools carry measurable error rates. When the human correction loop is ad-hoc, these errors recur without accumulating toward resolution.
+The failure mode compounds: AI agents generating plausible but unsupported output (hallucination) is a known and documented problem across every major provider. Even production-grade deep research tools carry rates that major providers have documented in their own evals. When the human correction loop is ad-hoc, these errors recur without accumulating toward resolution.
 
 The missing piece is a structured protocol for human-to-AI correction signals. Not chat. Not thumbs-up/thumbs-down. A system that grades severity, distinguishes signal types, encodes learnings persistently, and weights success paths higher than failure paths.
 
@@ -51,7 +51,7 @@ Five subsystems, one goal — agents that get better over time:
 - **Signal Detection** — Classifies natural language feedback without requiring special syntax. "That's not quite right" is as valid as `dbn`
 - **Rule Encoding** — Stores learnings as human-readable markdown with weighted frontmatter. Success files and failure files, separately tracked
 - **Learning System** — Pattern detection groups similar corrections. Three occurrences of the same pattern auto-promotes it to a permanent rule
-- **FSRS Decay Engine** — Rules that get applied grow stronger. Rules that sit unused fade toward archival. Based on the FSRS-6 spaced-repetition algorithm
+- **FSRS Decay Engine** — Rules that get applied grow stronger. Rules that sit unused fade toward archival. Based on the [FSRS-6 spaced-repetition algorithm](https://github.com/open-spaced-repetition/py-fsrs)
 
 ---
 
@@ -167,7 +167,7 @@ Wire DBNT into your AI tool. Every mistake your agent makes, every correction yo
 - Agent makes a mistake → you say "not quite" → signal detected → rule encoded
 - Next session: rule is loaded, mistake doesn't recur
 
-This alone eliminates 80% of repeat errors.
+This alone significantly reduces repeat errors by making every failure a teachable moment the agent encodes immediately.
 
 ### Level 2: Persistent Rules with Lifecycle Management
 
