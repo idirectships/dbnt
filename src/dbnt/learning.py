@@ -120,6 +120,7 @@ CREATE TABLE IF NOT EXISTS rule_decay (
 CREATE INDEX IF NOT EXISTS idx_learnings_domain ON learnings(domain);
 CREATE INDEX IF NOT EXISTS idx_learnings_promoted ON learnings(promoted_to);
 CREATE INDEX IF NOT EXISTS idx_learnings_session_text ON learnings(session_id);
+CREATE INDEX IF NOT EXISTS idx_learnings_dedup_key ON learnings(LOWER(SUBSTR(TRIM(text), 1, 80)));
 """
 
 
@@ -135,7 +136,7 @@ class LearningStore:
     def __enter__(self) -> LearningStore:
         return self
 
-    def __exit__(self, *args: object) -> None:  # pyright: ignore[reportUnusedVariable]
+    def __exit__(self, *_args: object) -> None:  # pyright: ignore[reportUnusedParameter]
         self.close()
 
     @property
@@ -156,20 +157,43 @@ class LearningStore:
         domain: str = "general",
         importance: float = 1.0,
         session_id: str | None = None,
+        cross_session_dedup: bool = True,
     ) -> int:
         """Add a learning. Returns the learning ID.
 
-        If a learning with identical text already exists for the same session,
-        returns the existing ID without inserting a duplicate.
+        Dedup logic (both checks use the first 80 normalized chars):
+        1. Cross-session dedup (default ON): if identical text already exists in
+           ANY session, return the existing ID without inserting. This prevents
+           the same pattern being re-extracted in every new session and inflating
+           the pattern detector's counts.
+        2. Within-session dedup: if the same text appears twice in the same
+           session, return the existing ID. Runs even when cross_session_dedup
+           is False.
+
+        Set cross_session_dedup=False to allow the same text to accumulate
+        across sessions (e.g. for explicit frequency tracking).
         """
-        if session_id:
-            key = text.strip().lower()[:80]
+        key = text.strip().lower()[:80]
+
+        if cross_session_dedup and session_id is not None:
+            # Only dedup across sessions when we have a session_id to anchor to.
+            # Sessionless calls (session_id=None) are anonymous/stateless — deduping
+            # them against all prior sessions would silently suppress inserts with no
+            # way for the caller to reason about which session owns the original row.
             existing = self.conn.execute(
-                "SELECT id FROM learnings WHERE session_id = ? AND LOWER(SUBSTR(text, 1, 80)) = ?",
+                "SELECT id FROM learnings WHERE LOWER(SUBSTR(TRIM(text), 1, 80)) = ?",
+                (key,),
+            ).fetchone()
+            if existing:
+                return existing["id"]  # skip cross-session duplicate
+
+        if session_id:
+            existing = self.conn.execute(
+                "SELECT id FROM learnings WHERE session_id = ? AND LOWER(SUBSTR(TRIM(text), 1, 80)) = ?",
                 (session_id, key),
             ).fetchone()
             if existing:
-                return existing["id"]  # skip duplicate
+                return existing["id"]  # skip within-session duplicate
 
         cursor = self.conn.execute(
             "INSERT INTO learnings (text, source, domain, importance, created_at, session_id) "
