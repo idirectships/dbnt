@@ -120,6 +120,7 @@ CREATE TABLE IF NOT EXISTS rule_decay (
 CREATE INDEX IF NOT EXISTS idx_learnings_domain ON learnings(domain);
 CREATE INDEX IF NOT EXISTS idx_learnings_promoted ON learnings(promoted_to);
 CREATE INDEX IF NOT EXISTS idx_learnings_session_text ON learnings(session_id);
+CREATE INDEX IF NOT EXISTS idx_learnings_dedup_key ON learnings(LOWER(SUBSTR(TRIM(text), 1, 80)));
 """
 
 
@@ -135,7 +136,7 @@ class LearningStore:
     def __enter__(self) -> LearningStore:
         return self
 
-    def __exit__(self, *args: object) -> None:  # pyright: ignore[reportUnusedVariable]
+    def __exit__(self, *_args: object) -> None:  # pyright: ignore[reportUnusedParameter]
         self.close()
 
     @property
@@ -174,9 +175,13 @@ class LearningStore:
         """
         key = text.strip().lower()[:80]
 
-        if cross_session_dedup:
+        if cross_session_dedup and session_id is not None:
+            # Only dedup across sessions when we have a session_id to anchor to.
+            # Sessionless calls (session_id=None) are anonymous/stateless — deduping
+            # them against all prior sessions would silently suppress inserts with no
+            # way for the caller to reason about which session owns the original row.
             existing = self.conn.execute(
-                "SELECT id FROM learnings WHERE LOWER(SUBSTR(text, 1, 80)) = ?",
+                "SELECT id FROM learnings WHERE LOWER(SUBSTR(TRIM(text), 1, 80)) = ?",
                 (key,),
             ).fetchone()
             if existing:
@@ -184,7 +189,7 @@ class LearningStore:
 
         if session_id:
             existing = self.conn.execute(
-                "SELECT id FROM learnings WHERE session_id = ? AND LOWER(SUBSTR(text, 1, 80)) = ?",
+                "SELECT id FROM learnings WHERE session_id = ? AND LOWER(SUBSTR(TRIM(text), 1, 80)) = ?",
                 (session_id, key),
             ).fetchone()
             if existing:

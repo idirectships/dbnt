@@ -131,6 +131,19 @@ class TestLearningStore:
         assert len(store.get_unpromoted()) == 2
         store.close()
 
+    def test_sessionless_cross_session_dedup_does_not_dedup(self):
+        # When session_id=None, cross_session_dedup=True is a no-op: the same text
+        # added twice without a session_id creates two rows. Without an owning session,
+        # there is no meaningful "cross-session" identity to check against, so we insert
+        # rather than silently suppressing the second call.
+        store = LearningStore(db_path=Path(tempfile.mkdtemp()) / "test.db")
+        text = "Never push directly to main"
+        id1 = store.add(text)  # session_id=None, cross_session_dedup=True (default)
+        id2 = store.add(text)  # same args — should NOT dedup
+        assert id1 != id2, "sessionless calls should not dedup even with cross_session_dedup=True"
+        assert len(store.get_unpromoted()) == 2
+        store.close()
+
     def test_decay_state_persistence(self):
         store = LearningStore(db_path=Path(tempfile.mkdtemp()) / "test.db")
         state = DecayState(stability=5.0, difficulty=0.3)
