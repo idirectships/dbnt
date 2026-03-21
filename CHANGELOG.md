@@ -8,10 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ## [0.5.2] - 2026-03-20
+### Added
+- `--limit` flag on `dbnt patterns` and `dbnt promote` (default 200) to cap SequenceMatcher comparisons
 ### Fixed
+- O(n²) hang in `dbnt patterns` / `dbnt promote` with 2500+ entries — SequenceMatcher over full store now capped
+- `_load_state` migrates legacy score events with `delta` key to current `points` schema at load time
 - KeyError: 'points' when loading legacy score events with `delta` key schema
 - Learning contamination: filter added to reject system-reminder and tool-suggestion text
-- Deleted 118 contaminated entries from existing learnings.db
 
 ## [0.5.1] - 2026-03-17
 ### Added
