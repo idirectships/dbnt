@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-03-20
+### Fixed
+- KeyError: 'points' when loading legacy score events with `delta` key schema
+- Learning contamination: filter added to reject system-reminder and tool-suggestion text
+- Deleted 118 contaminated entries from existing learnings.db
+
 ## [0.5.1] - 2026-03-17
 ### Added
 - Session-level dedup in LearningStore.add()
