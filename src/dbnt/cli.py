@@ -149,17 +149,25 @@ def learn(text: str, domain: str, importance: float, source: str):
 @main.command()
 @click.option("--domain", "-d", default=None, help="Filter by domain")
 @click.option("--threshold", "-t", default=0.7, type=float, help="Similarity threshold")
-def patterns(domain: str | None, threshold: float):
+@click.option("--limit", "-l", default=200, type=int, help="Max learnings to scan (default 200)")
+def patterns(domain: str | None, threshold: float, limit: int):
     """Detect recurring patterns in learnings.
 
     Groups similar learnings and shows which are ready for promotion to rules.
+    Caps at --limit entries (default 200) to keep detection fast on large stores.
     """
     with LearningStore() as store:
         learnings = store.get_unpromoted(domain=domain)
 
+    total = len(learnings)
     if not learnings:
         click.echo("No unpromoted learnings found.")
         return
+
+    # Cap to avoid O(n²) timeout on large stores
+    if total > limit:
+        click.echo(f"Note: {total} learnings found — scanning most recent {limit} (use --limit to adjust).")
+        learnings = learnings[:limit]
 
     detector = PatternDetector(similarity_threshold=threshold)
     groups = detector.detect(learnings)
@@ -177,7 +185,8 @@ def patterns(domain: str | None, threshold: float):
 
 @main.command()
 @click.option("--domain", "-d", default=None, help="Filter by domain")
-def promote(domain: str | None):
+@click.option("--limit", "-l", default=200, type=int, help="Max learnings to scan (default 200)")
+def promote(domain: str | None, limit: int):
     """Auto-promote recurring patterns to rules.
 
     Patterns with 3+ occurrences become rules automatically.
@@ -186,6 +195,8 @@ def promote(domain: str | None):
 
     with LearningStore() as store:
         learnings = store.get_unpromoted(domain=domain)
+        if len(learnings) > limit:
+            learnings = learnings[:limit]
 
         detector = PatternDetector()
         groups = detector.detect(learnings)
