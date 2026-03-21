@@ -124,6 +124,26 @@ CREATE INDEX IF NOT EXISTS idx_learnings_dedup_key ON learnings(LOWER(SUBSTR(TRI
 """
 
 
+# Patterns that indicate system-prompt or tool-suggestion contamination.
+# These strings appear in Claude's internal system reminders and shell command
+# suggestions — never from real user feedback. Entries matching any pattern
+# are silently dropped in LearningStore.add().
+_CONTAMINATION_PATTERNS: list[re.Pattern] = [
+    re.compile(r"^Use tool_use:", re.IGNORECASE),
+    re.compile(r"^Use Bash to run", re.IGNORECASE),
+    re.compile(r"respond to these messages or otherwise consider", re.IGNORECASE),
+    re.compile(r"system.reminder", re.IGNORECASE),
+    re.compile(r"<system-reminder>", re.IGNORECASE),
+    re.compile(r"IMPORTANT:.*after completing", re.IGNORECASE),
+    re.compile(r"task.notification", re.IGNORECASE),
+]
+
+
+def _is_contaminated(text: str) -> bool:
+    """Return True if text looks like system-prompt or tool-suggestion noise."""
+    return any(pattern.search(text) for pattern in _CONTAMINATION_PATTERNS)
+
+
 class LearningStore:
     """SQLite-backed learning storage. Supports context manager protocol."""
 
@@ -173,6 +193,9 @@ class LearningStore:
         Set cross_session_dedup=False to allow the same text to accumulate
         across sessions (e.g. for explicit frequency tracking).
         """
+        if _is_contaminated(text):
+            return -1  # silently drop; -1 signals "not stored" without raising
+
         key = text.strip().lower()[:80]
 
         if cross_session_dedup and session_id is not None:

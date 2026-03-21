@@ -72,14 +72,21 @@ This is the **Ralph Wiggum Problem**: knowing 100 things not to do doesn't tell 
 
 ### Installation
 
-**Claude Code Plugin** (recommended for Claude Code users):
-```bash
-/install github:idirectships/dbnt
-```
-
-**Python Package** (for library usage, other adapters, or CLI):
+**Python Package** (Python 3.10+ required):
 ```bash
 pip install dbnt
+```
+
+**Development install** (requires Python 3.10+, use a venv if on a managed system):
+```bash
+git clone https://github.com/idirectships/dbnt
+cd dbnt
+python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"
+```
+
+**Wire into Claude Code** (installs hooks to `~/.claude/hooks/`):
+```bash
+dbnt install --adapter claude-code
 ```
 
 ### 60-Second Example
@@ -259,18 +266,21 @@ Silence is treated as neutral approval. The system doesn't require active positi
 
 ---
 
-## Rule Storage
+## State Directory
 
-Rules live in `~/.dbnt/rules/`:
+All DBNT state lives in `~/.dbnt/`:
 
 ```
 ~/.dbnt/
 ├── rules/
 │   ├── successes/     # What worked — 1.5x weighted
-│   └── failures/      # What failed — 1.0x weighted
+│   ├── failures/      # What failed — 1.0x weighted
+│   └── patterns/      # Auto-promoted from recurring learnings
 ├── learnings.db       # SQLite — pattern detection, decay tracking
 └── score.json         # Running score history
 ```
+
+The `~/.dbnt/` directory is portable. Copy it to a new machine, run `dbnt status`, and the full history is there.
 
 A rule file looks like this:
 
@@ -328,14 +338,23 @@ dbnt failure "Pushed to main" -c protocol -x "Always use feature branches"
 
 # Learning
 dbnt learn "Always validate at boundaries" -d code -i 3
-dbnt patterns                     # Show recurring patterns
+dbnt patterns                     # Show recurring patterns (caps at 200 learnings)
+dbnt patterns --limit 500         # Scan more learnings (slower on large stores)
 dbnt promote                      # Auto-promote qualifying patterns to rules
 dbnt sweep                        # Run FSRS decay check — archives stale rules
 
 # Status
 dbnt status                       # Full system overview
 dbnt dissonance                   # Surface conflicting success/failure signals
+
+# Claude Code integration
+dbnt install --adapter claude-code    # Wire hooks to ~/.claude/hooks/
+dbnt uninstall                         # Remove hooks
 ```
+
+### Performance Note
+
+`dbnt patterns` uses O(n²) SequenceMatcher to group similar learnings. On stores with 500+ learnings, it caps automatically (default 200) to stay under ~3 seconds. Use `--limit` to scan more at the cost of time.
 
 ---
 
