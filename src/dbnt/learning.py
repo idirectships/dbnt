@@ -141,10 +141,7 @@ _CONTAMINATION_PATTERNS: list[re.Pattern] = [
 
 def _is_contaminated(text: str) -> bool:
     """Return True if text looks like system-prompt or tool-suggestion noise."""
-    for pattern in _CONTAMINATION_PATTERNS:
-        if pattern.search(text):
-            return True
-    return False
+    return any(pattern.search(text) for pattern in _CONTAMINATION_PATTERNS)
 
 
 class LearningStore:
