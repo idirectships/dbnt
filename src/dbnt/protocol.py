@@ -58,11 +58,17 @@ class ScoreState:
 
     @property
     def success_count(self) -> int:
-        return sum(1 for e in self.events if e["points"] > 0)
+        return sum(
+            1 for e in self.events
+            if e.get("points", e.get("delta", e.get("score", e.get("weight", 0)))) > 0
+        )
 
     @property
     def failure_count(self) -> int:
-        return sum(1 for e in self.events if e["points"] < 0)
+        return sum(
+            1 for e in self.events
+            if e.get("points", e.get("delta", e.get("score", e.get("weight", 0)))) < 0
+        )
 
     @property
     def success_rate(self) -> float:
@@ -211,9 +217,15 @@ class Protocol:
             return ScoreState()
         try:
             data = json.loads(self.score_path.read_text())
+            # Migrate legacy events that use 'delta' instead of 'points'
+            events = []
+            for e in data.get("events", []):
+                if "points" not in e and "delta" in e:
+                    e = {**e, "points": e["delta"], "command": e.get("event", "unknown")}
+                events.append(e)
             return ScoreState(
                 total_points=data.get("total_points", 0.0),
-                events=data.get("events", []),
+                events=events,
                 tweak_count=data.get("tweak_count", 0),
             )
         except (json.JSONDecodeError, KeyError):
